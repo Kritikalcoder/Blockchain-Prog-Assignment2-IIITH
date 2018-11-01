@@ -203,4 +203,78 @@ contract Quiz{
         }
     }
 
+    function submit_answer(uint _qno, uint _ans) public
+    onlyAfter(starttime)
+    onlyBefore(endtime)
+    hasPaid(msg.sender)
+    hasNotAnsweredQuestion(msg.sender, _qno) returns(bool) {
+
+        require(_ans > 0 && _ans < 5, "Invalid response");
+        require(msg.sender != quiz_master, "You are the quiz master. You cannot answer the questions.");
+
+        uint i;
+        for(i = 0; i < question_count; i++) {
+
+            if(question_details[i].endtime > block.number && question_details[i].starttime <= block.number) {
+
+                require(_qno - 1 == i, "Not in the current question session");
+
+                question_details[i].answers[msg.sender] = _ans;
+
+                if(question_details[i].won_over == false && _ans == question_details[i].correct_ans)  {
+                    question_details[i].won_over = true;
+                    question_details[i].winner = msg.sender;
+                    return true;
+                }
+                else {
+                    return false;
+                }
+
+            }
+        }
+    }
+
+    function get_reward() public
+    onlyAfter(endtime)
+    hasPaidorQuizMaster(msg.sender)
+    returns(uint) {
+        require(((msg.sender == quiz_master && quiz_master_reward_collected == true) || add_to_player[msg.sender].is_reward_collected == false) && !((msg.sender == quiz_master && quiz_master_reward_collected == true) && add_to_player[msg.sender].is_reward_collected == false), "You have already collected your reward");
+
+        uint reward = 0;
+        uint i;
+
+        if(msg.sender == quiz_master) {
+
+            for(i = 0; i < question_count; i++) {
+                if(question_details[i].winner == 0) {
+                    reward = reward + (3 * total_pfee) / (4 * question_count);
+                }
+            }
+            reward = reward + total_pfee / 4;
+            msg.sender.transfer(reward);
+            quiz_master_reward_collected = true;
+        }
+
+        else if(msg.sender != quiz_master) {
+            reward = 0;
+            for(i = 0; i < question_count; i++) {
+                if(msg.sender == question_details[i].winner) {
+                    reward = reward + (3 * total_pfee) / (4 * question_count);
+                }
+            }
+            msg.sender.transfer(reward);
+            add_to_player[msg.sender].is_reward_collected = true;
+        }
+        return reward;
+    }
+
+    // function view_start_time() public view returns(uint) {
+    //     return block.number; 
+    // }
+
+    function get_current_block() public payable returns(uint) {
+        time  = time + 1;
+        return block.number;
+    }
+
 }

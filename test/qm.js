@@ -73,4 +73,33 @@ contract("Quiz", async(accounts) => {
         await expectThrow(res1);
     })
 
+    it("tests that the player cannot submit an answer after question deadline", async () => {
+        var T = 20;
+        while (T--) {
+            await quiz.get_current_block();
+        }
+        let res1 = quiz.submit_answer(2, 4, {from: accounts[1]});
+        await expectThrow(res1);       
+    })
+    
+    it("tests that the player cannot collect reward before quiz ends", async () => {
+        let res1 = quiz.get_reward({from: accounts[1]});
+        await expectThrow(res1);       
+    })
+    
+    it("tests that the player and the quiz master can collect reward after quiz gets over", async () => {
+        var T = 20;
+        while (T--) {
+            await quiz.get_current_block();
+        }
+        let res1 = await quiz.get_reward({from: accounts[1]});
+        let res2 = await quiz.get_reward({from: accounts[0]});
+        // await expectThrow(res1);       
+    })
+
+    it("tests that the player cannot collect reward twice", async () => {
+        let res1 = quiz.get_reward({from: accounts[1]});
+        await expectThrow(res1);       
+    })
+
 });
